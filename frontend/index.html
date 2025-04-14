@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contador de Calorías</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body style="text-align: center; font-family: sans-serif; padding: 20px;">
+  <h2>Sube o toma una foto de tu comida</h2>
+
+  <input type="file" accept="image/*" capture="environment" id="foto">
+  <br><br>
+  <button onclick="enviarFoto()">Procesar Foto</button>
+
+  <div id="cargando" style="display:none; margin-top: 20px;">Procesando...</div>
+  <pre id="resultado" style="margin-top: 20px; white-space: pre-wrap;"></pre>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
