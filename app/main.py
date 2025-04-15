@@ -25,11 +25,11 @@ def encode_image(image_path):
         return base64.b64encode(image_file.read()).decode("utf-8")
 
 # Servir archivos estáticos (frontend)
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+app.mount("/static", StaticFiles(directory="./frontend"), name="static")
 
 @app.get("/")
 def serve_index():
-    return FileResponse("../frontend/index.html")
+    return FileResponse("./frontend/index.html")
 
 @app.post("/procesar-foto")
 async def procesar_foto(foto: UploadFile = File(...)):
