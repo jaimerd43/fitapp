@@ -6,10 +6,43 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 import os
+from app.db import init_db
+
+from app.models import Comida
+from fastapi import Depends, HTTPException
+from app.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.models import Usuario
+from app.db import get_session
+from sqlmodel import select, Session
+from pydantic import BaseModel
+
+init_db()
 
 app = FastAPI()
 
 client = OpenAI()
+
+class AuthData(BaseModel):
+    email: str
+    password: str
+
+@app.post("/registro")
+def registrar(data: AuthData, session: Session = Depends(get_session)):
+    if session.exec(select(Usuario).where(Usuario.email == data.email)).first():
+        raise HTTPException(status_code=400, detail="Usuario ya existe")
+    user = Usuario(email=data.email, hashed_password=hash_password(data.password))
+    session.add(user)
+    session.commit()
+    return {"mensaje": "Usuario creado"}
+
+@app.post("/login")
+def login(data: AuthData, session: Session = Depends(get_session)):
+    user = session.exec(select(Usuario).where(Usuario.email == data.email)).first()
+    if not user or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    token = create_access_token({"sub": user.email})
+    return {"access_token": token, "token_type": "bearer"}
+
 
 # Permite acceso desde cualquier origen en desarrollo
 app.add_middleware(
@@ -25,18 +58,24 @@ def encode_image(image_path):
         return base64.b64encode(image_file.read()).decode("utf-8")
 
 # Servir archivos estáticos (frontend)
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+app.mount("/static", StaticFiles(directory="./frontend"), name="static")
 
 @app.get("/")
 def serve_index():
-    return FileResponse("../frontend/index.html")
+    return FileResponse("./frontend/index.html")
 
 @app.post("/procesar-foto")
-async def procesar_foto(foto: UploadFile = File(...)):
+async def procesar_foto(
+    foto: UploadFile = File(...),
+    usuario: Usuario = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    # Guardar imagen temporal
     temp_path = f"temp_{foto.filename}"
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(foto.file, buffer)
 
+    # Codificar a base64
     base64_image = encode_image(temp_path)
 
     prompt = """
@@ -70,4 +109,15 @@ async def procesar_foto(foto: UploadFile = File(...)):
         ],
     )
 
-    return {"resultado": response.output_text}
+    resultado = response.output_text
+
+    # Guardar en base de datos
+    comida = Comida(
+        usuario_id=usuario.id,
+        resultado=resultado,
+        filename=foto.filename
+    )
+    session.add(comida)
+    session.commit()
+
+    return {"resultado": resultado}
