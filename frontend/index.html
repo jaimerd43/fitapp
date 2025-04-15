@@ -8,23 +8,29 @@
   <link rel="manifest" href="/static/manifest.json" />
 </head>
 <body class="bg-gray-100 text-gray-900 flex flex-col items-center justify-center min-h-screen px-4">
-  <div class="w-full max-w-md bg-white shadow-md rounded-lg p-6">
-    <h1 class="text-2xl font-bold text-center mb-4">Analiza tu comida</h1>
+  <div class="w-full max-w-md bg-white shadow-md rounded-lg p-6 space-y-6">
 
-    <input type="file" accept="image/*" capture="environment" id="foto"
-      class="w-full p-2 border rounded mb-4" />
+    <!-- Login / Registro -->
+    <div id="auth">
+      <h1 class="text-2xl font-bold text-center mb-2">Iniciar sesión</h1>
+      <input id="email" type="email" placeholder="Email" class="w-full p-2 border rounded mb-2" />
+      <input id="password" type="password" placeholder="Contraseña" class="w-full p-2 border rounded mb-2" />
 
-    <img id="preview" class="w-full h-auto mb-4 hidden rounded shadow" />
+      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Entrar</button>
+      <p class="text-center mt-2 text-sm text-gray-500">¿No tienes cuenta? <a href="#" onclick="registrar()" class="underline">Registrarme</a></p>
+    </div>
 
-    <button onclick="enviarFoto()"
-      class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
-      Procesar Foto
-    </button>
+    <!-- Subir Imagen -->
+    <div id="app" class="hidden">
+      <h1 class="text-2xl font-bold text-center mb-4">Analiza tu comida</h1>
+      <input type="file" accept="image/*" capture="environment" id="foto" class="w-full p-2 border rounded mb-4" />
+      <img id="preview" class="w-full h-auto mb-4 hidden rounded shadow" />
+      <button onclick="enviarFoto()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Procesar Foto</button>
+      <div id="cargando" class="mt-4 text-center text-blue-600 hidden">Procesando...</div>
+      <pre id="resultado" class="mt-4 whitespace-pre-wrap text-sm text-gray-800"></pre>
+    </div>
 
-    <div id="cargando" class="mt-4 text-center text-blue-600 hidden">Procesando...</div>
-    <pre id="resultado" class="mt-4 whitespace-pre-wrap text-sm text-gray-800"></pre>
   </div>
-
   <script src="/static/script.js"></script>
 </body>
 </html>
