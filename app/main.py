@@ -9,12 +9,18 @@ import os
 from app.db import init_db
 
 from app.models import Comida
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Body
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
 from app.models import Usuario
 from app.db import get_session
 from sqlmodel import select, Session
 from pydantic import BaseModel
+from app.chatbot import chatbot_app
+from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import AIMessage
+from langgraph.checkpoint.base import Checkpoint
+from langgraph.checkpoint.base import RunnableConfig
+
 
 init_db()
 
@@ -110,14 +116,75 @@ async def procesar_foto(
     )
 
     resultado = response.output_text
+    
+    chatbot_app.invoke(
+    {"messages": [HumanMessage(content=resultado)]},
+    config={"configurable": {"thread_id": str(usuario.id)}})
+
+    # Guardar en base de datos
+    # comida = Comida(
+    #     usuario_id=usuario.id,
+    #     resultado=resultado,
+    #     filename=foto.filename
+    # )
+    # session.add(comida)
+    # session.commit()
+
+    return {"resultado": resultado}
+
+
+@app.post("/chat")
+def chat(
+    mensaje: str = Body(..., embed=True),
+    usuario: Usuario = Depends(get_current_user)
+):
+    # Config con ID único por usuario
+    config = {"configurable": {"thread_id": str(usuario.id)}}
+    input_msg = [HumanMessage(content=mensaje)]
+    output = chatbot_app.invoke({"messages": input_msg}, config=config)
+
+    # Devuelve solo el último mensaje generado
+    respuesta = output["messages"][-1].content
+    return {"respuesta": respuesta}
+
+
+@app.post("/guardar-ajuste-final")
+def guardar_ajuste_final(
+    usuario: Usuario = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    # Usar el mismo config con thread_id
+    config: RunnableConfig = {"configurable": {"thread_id": str(usuario.id)}}
+
+    # Obtener el checkpoint actual desde el MemorySaver
+    checkpoint = chatbot_app.checkpointer.get(config)
+
+    if not checkpoint:
+        raise HTTPException(status_code=404, detail="No se encontró historial para este usuario")
+
+    # Acceder al historial de mensajes guardado
+    messages = checkpoint.get("channel_values", {}).get("messages", [])
+    if not messages:
+        raise HTTPException(status_code=404, detail="No hay mensajes previos")
+
+    # Buscar el último mensaje del asistente
+    for msg in reversed(messages):
+        if isinstance(msg, AIMessage):
+            resultado = msg.content
+            break
+    else:
+        raise HTTPException(status_code=404, detail="No se encontró respuesta del asistente")
 
     # Guardar en base de datos
     comida = Comida(
         usuario_id=usuario.id,
         resultado=resultado,
-        filename=foto.filename
+        filename="ajuste_final_chat"
     )
     session.add(comida)
     session.commit()
 
-    return {"resultado": resultado}
+    return {"mensaje": "Resultado final guardado correctamente"}
+
+
+

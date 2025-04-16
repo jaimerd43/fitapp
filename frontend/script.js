@@ -4,6 +4,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const preview = document.getElementById("preview");
   const cargando = document.getElementById("cargando");
   const resultado = document.getElementById("resultado");
+  const chatBox = document.getElementById("chat-box");
+  const conversacion = document.getElementById("conversacion");
+  const ajusteInput = document.getElementById("ajuste-input");
 
   const token = localStorage.getItem("token");
   if (token) {
@@ -39,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       alert("Credenciales incorrectas");
     }
-  }
+  };
 
   window.registrar = async function () {
     const email = document.getElementById("email").value.trim();
@@ -55,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       alert("Ya existe una cuenta con este correo.");
     }
-  }
+  };
 
   window.enviarFoto = async function () {
     const file = document.getElementById("foto").files[0];
@@ -80,8 +83,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (res.ok) {
       resultado.textContent = data.resultado;
+      chatBox.classList.remove("hidden");
+      conversacion.innerHTML = ""; // Reiniciar chat para nueva comida
     } else {
       resultado.textContent = data.detail || "Error al procesar";
     }
-  }
+  };
+
+  window.enviarAjuste = async function () {
+    const mensaje = ajusteInput.value.trim();
+    if (!mensaje) return;
+
+    // Mostrar mensaje del usuario con estilo
+    const userBubble = document.createElement("div");
+    userBubble.textContent = mensaje;
+    userBubble.className = "self-end bg-blue-500 text-white px-4 py-2 rounded-2xl max-w-xs w-fit";
+    conversacion.appendChild(userBubble);
+
+    ajusteInput.value = "";
+
+    // Llamar al backend
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + localStorage.getItem("token")
+      },
+      body: JSON.stringify({ mensaje })
+    });
+
+    const data = await res.json();
+
+    // Mostrar respuesta del bot con estilo
+    const botBubble = document.createElement("div");
+    botBubble.textContent = data.respuesta;
+    botBubble.className = "self-start bg-gray-200 text-gray-800 px-4 py-2 rounded-2xl max-w-xs w-fit";
+    conversacion.appendChild(botBubble);
+
+    conversacion.scrollTop = conversacion.scrollHeight;
+  };
 });
+
+
+window.guardarResultadoFinal = async function () {
+  const res = await fetch("/guardar-ajuste-final", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + localStorage.getItem("token")
+    }
+  });
+
+  const data = await res.json();
+  alert(data.mensaje || "Guardado correctamente ✅");
+
+  conversacion.innerHTML = "";
+  ajusteInput.value = "";
+  chatBox.classList.add("hidden");
+};
+

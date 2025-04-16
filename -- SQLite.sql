@@ -1,2 +1,2 @@
 -- SQLite
-SELECT id, email FROM usuario;
+SELECT usuario_id, resultado FROM comida;
