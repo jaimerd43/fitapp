@@ -1,48 +1,237 @@
 <!DOCTYPE html>
 <html lang="es">
-<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FitApp Calorías</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Alana - Tu Plato de Comida</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="/static/manifest.json" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #000000;
+      color: #FFFFFF;
+    }
+    
+    .app-container {
+      min-height: 100vh;
+      background-color: #000000;
+    }
+    
+    .card {
+      background: #121212;
+      border: 1px solid #333333;
+    }
+    
+    .green-gradient {
+      background: linear-gradient(135deg, #10B981, #34D399);
+    }
+    
+    .bubble-user {
+      background: linear-gradient(135deg, #10B981, #34D399);
+      border-radius: 18px 18px 4px 18px;
+    }
+    
+    .bubble-bot {
+      background: #1A1A1A;
+      border-radius: 18px 18px 18px 4px;
+      border: 1px solid #333333;
+    }
+    
+    .input-container {
+      background: #1A1A1A;
+      border: 1px solid #333333;
+    }
+    
+    .alana-logo {
+      background: linear-gradient(135deg, #10B981, #34D399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-fill-color: transparent;
+    }
+    
+    .image-preview-container {
+      aspect-ratio: 1/1;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .image-preview-container img {
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .loading-dots span {
+      animation: loading 1.4s infinite ease-in-out both;
+    }
+    
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    
+    @keyframes loading {
+      0%, 80%, 100% { 
+        transform: scale(0);
+        opacity: 0.5;
+      }
+      40% { 
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    .calorie-result {
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+    
+    .camera-icon {
+      filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.3));
+    }
+    
+    .file-input-label {
+      background: linear-gradient(135deg, #10B981, #34D399);
+      transition: all 0.3s ease;
+    }
+    
+    .file-input-label:hover {
+      background: linear-gradient(135deg, #059669, #10B981);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .input-with-icon {
+      padding-right: 3rem;
+    }
+    
+    .send-button {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-900 flex flex-col items-center justify-center min-h-screen px-4">
-  <div class="w-full max-w-md bg-white shadow-md rounded-lg p-6 space-y-6">
-
-    <!-- Login / Registro -->
-    <div id="auth">
-      <h1 class="text-2xl font-bold text-center mb-2">Iniciar sesión</h1>
-      <input id="email" type="email" placeholder="Email" class="w-full p-2 border rounded mb-2" />
-      <input id="password" type="password" placeholder="Contraseña" class="w-full p-2 border rounded mb-2" />
-
-      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Entrar</button>
-      <p class="text-center mt-2 text-sm text-gray-500">¿No tienes cuenta? <a href="#" onclick="registrar()" class="underline">Registrarme</a></p>
-    </div>
-
-    <!-- Subir Imagen -->
-    <div id="app" class="hidden">
-      <h1 class="text-2xl font-bold text-center mb-4">Analiza tu comida</h1>
-      <input type="file" accept="image/*" capture="environment" id="foto" class="w-full p-2 border rounded mb-4" />
-      <img id="preview" class="w-full h-auto mb-4 hidden rounded shadow" />
-      <button onclick="enviarFoto()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Procesar Foto</button>
-      <div id="cargando" class="mt-4 text-center text-blue-600 hidden">Procesando...</div>
-      <pre id="resultado" class="mt-4 whitespace-pre-wrap text-sm text-gray-800"></pre>
-    </div>
-
-    <!-- Ajustes posteriores al análisis -->
-    <div id="chat-box" class="hidden">
-      <h2 class="text-lg font-semibold mt-4">¿Quieres ajustar el análisis?</h2>
-      <textarea id="ajuste-input" rows="2" placeholder="Ej: usé mantequilla en vez de aceite" class="w-full p-2 border rounded mt-2"></textarea>
-      <button onclick="enviarAjuste()" class="mt-2 w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">Enviar Ajuste</button>
-      <button onclick="guardarResultadoFinal()" class="mt-2 w-full bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700">
-        ✅ Guardar resultado final
-      </button>
-      <div id="conversacion" class="mt-4 flex flex-col space-y-2 text-sm text-gray-800"></div>
+<body>
+  <div class="app-container flex flex-col items-center justify-center p-4 sm:p-6">
+    <div class="w-full max-w-md card rounded-3xl shadow-xl p-6 sm:p-8 mb-6">
+      <!-- Login / Registro -->
+      <div id="auth" class="space-y-6">
+        <div class="text-center mb-8">
+          <h1 class="alana-logo text-4xl font-bold mb-2">Alana</h1>
+          <p class="text-green-300 text-sm">Tu asistente nutricional inteligente</p>
+        </div>
+        
+        <div class="relative mb-6">
+          <input id="email" type="email" class="w-full p-4 bg-black border border-gray-800 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none text-white" placeholder="Email" />
+        </div>
+        
+        <div class="relative mb-8">
+          <input id="password" type="password" class="w-full p-4 bg-black border border-gray-800 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none text-white" placeholder="Contraseña" />
+        </div>
+        
+        <button onclick="login()" class="w-full green-gradient text-white py-4 rounded-xl font-semibold text-lg tracking-wide hover:shadow-lg hover:shadow-green-500/20 transition-all">
+          Iniciar Sesión
+        </button>
+        
+        <p class="text-center mt-4 text-sm text-gray-400">¿No tienes cuenta? <a href="#" onclick="registrar()" class="text-green-400 hover:text-green-300 transition-colors">Crear cuenta</a></p>
+      </div>
+      
+      <!-- App Principal -->
+      <div id="app" class="hidden space-y-6">
+        <div class="text-center mb-6">
+          <h1 class="alana-logo text-3xl font-bold mb-1">Alana</h1>
+          <p class="text-green-300 text-sm">Tu plato de comida analizado</p>
+        </div>
+        
+        <div id="upload-section" class="flex flex-col items-center justify-center mb-4">
+          <div class="image-preview-container w-full max-w-xs rounded-2xl border-2 border-dashed border-gray-800 bg-black flex items-center justify-center mb-4">
+            <img id="preview" class="hidden w-full h-full rounded-2xl object-cover" />
+            <div id="upload-placeholder" class="flex flex-col items-center justify-center p-8">
+              <svg class="w-12 h-12 text-green-500 mb-3 camera-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              <p class="text-gray-400 text-sm text-center">Sube una foto de tu comida</p>
+            </div>
+          </div>
+          
+          <label for="foto" class="file-input-label w-full py-4 px-6 rounded-xl text-white font-semibold flex items-center justify-center cursor-pointer">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+            </svg>
+            Selecciona tu foto!
+          </label>
+          <input type="file" accept="image/*" capture="environment" id="foto" class="hidden" />
+          
+          <button onclick="enviarFoto()" class="w-full mt-3 py-4 px-6 bg-black hover:bg-gray-900 text-white border border-gray-800 rounded-xl font-semibold transition-colors flex items-center justify-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Analizar ahora
+          </button>
+        </div>
+        
+        <div id="cargando" class="hidden w-full text-center py-6">
+          <div class="loading-dots flex justify-center space-x-2">
+            <span class="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
+            <span class="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
+            <span class="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
+          </div>
+          <p class="text-green-300 mt-3 text-sm">Analizando tu comida...</p>
+        </div>
+        
+        <div id="result-container" class="hidden">
+          <h2 class="text-xl font-semibold mb-3 text-green-100">Análisis de tu comida</h2>
+          <div class="calorie-result bg-black border border-gray-800 rounded-2xl p-4 text-sm text-gray-300">
+            <pre id="resultado" class="whitespace-pre-wrap font-sans"></pre>
+          </div>
+        </div>
+      </div>
     </div>
     
-
+    <!-- Chat para ajustes -->
+    <div id="chat-box" class="w-full max-w-md card rounded-3xl shadow-xl p-6 hidden">
+      <h2 class="text-xl font-semibold mb-3 text-green-100">Ajustes del análisis</h2>
+      <p class="text-sm text-gray-400 mb-4">¿Quieres ajustar algún detalle del análisis? Indícame los cambios. En caso de no querer ajustarlo, simplemente presiona el botón de guardar el análisis calórico.</p>
+      
+      <div id="conversacion" class="flex flex-col space-y-3 mb-4 max-h-80 overflow-y-auto hide-scrollbar pb-2"></div>
+      
+      <div class="relative">
+        <input id="ajuste-input" type="text" class="w-full p-4 pr-12 bg-black border border-gray-800 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none text-white input-with-icon" placeholder="Ej: usé aceite de oliva extra virgen..." />
+        
+        <button onclick="enviarAjuste()" class="send-button bg-green-500 rounded-full p-2 text-white hover:bg-green-600 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <button onclick="guardarResultadoFinal()" class="w-full mt-4 py-3 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        Guardar análisis calórico
+      </button>
+    </div>
   </div>
   <script src="/static/script.js"></script>
 </body>
