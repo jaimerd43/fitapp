@@ -21,6 +21,7 @@ from langchain_core.messages import AIMessage
 from langgraph.checkpoint.base import Checkpoint
 from langgraph.checkpoint.base import RunnableConfig
 
+from app.ai.prompts import VISION_ANALYSIS_PROMPT
 
 init_db()
 
@@ -84,28 +85,13 @@ async def procesar_foto(
     # Codificar a base64
     base64_image = encode_image(temp_path)
 
-    prompt = """
-        You are a visual AI assistant specialized in nutritional analysis. Your task is to estimate the total calorie content of a meal from an image. Follow this step-by-step process:
-        1. Identify the ingredients: List all recognizable food items in the image.
-        2. Estimate portion sizes: For each ingredient, estimate the portion size using common units (e.g., grams, milliliters, slices, cups). Use visual cues such as the size relative to utensils, plates, or hands.
-        3. Map ingredients to standard food items: Match each identified ingredient to its most relevant item in a nutritional database (e.g., "grilled chicken breast", "white rice", "olive oil").
-        4. Estimate calorie content: Using standard nutritional values (e.g., kcal per 100g), estimate the calorie content of each ingredient based on the estimated portion size.
-        5. Sum the total: Add up the estimated calories of each component to give a total calorie estimate for the meal.
-
-        Please Provide a clear breakdown showing:
-        - Ingredient name
-        - Estimated portion size
-        - Estimated calories per portion
-        - Total estimated calories for the meal
-    """
-
     response = client.responses.create(
         model="gpt-4o-mini",
         input=[
             {
                 "role": "user",
                 "content": [
-                    {"type": "input_text", "text": prompt},
+                    {"type": "input_text", "text": VISION_ANALYSIS_PROMPT},
                     {
                         "type": "input_image",
                         "image_url": f"data:image/jpeg;base64,{base64_image}",
@@ -117,20 +103,24 @@ async def procesar_foto(
 
     resultado = response.output_text
     
+    # Guardar el resultado original en la sesión del usuario para poder recuperarlo después
+    # Usamos un diccionario para almacenar los resultados originales por usuario
+    if not hasattr(app, "resultados_originales"):
+        app.resultados_originales = {}
+    
+    app.resultados_originales[str(usuario.id)] = resultado
+    
+    # Inicializar el chat con el resultado original
     chatbot_app.invoke(
-    {"messages": [HumanMessage(content=resultado)]},
-    config={"configurable": {"thread_id": str(usuario.id)}})
+        {"messages": [AIMessage(content=resultado)]},
+        config={"configurable": {"thread_id": str(usuario.id)}}
+    )
 
-    # Guardar en base de datos
-    # comida = Comida(
-    #     usuario_id=usuario.id,
-    #     resultado=resultado,
-    #     filename=foto.filename
-    # )
-    # session.add(comida)
-    # session.commit()
+    if os.path.exists(temp_path):
+        os.remove(temp_path)
 
     return {"resultado": resultado}
+
 
 
 @app.post("/chat")
@@ -146,7 +136,6 @@ def chat(
     # Devuelve solo el último mensaje generado
     respuesta = output["messages"][-1].content
     return {"respuesta": respuesta}
-
 
 @app.post("/guardar-ajuste-final")
 def guardar_ajuste_final(
@@ -167,24 +156,42 @@ def guardar_ajuste_final(
     if not messages:
         raise HTTPException(status_code=404, detail="No hay mensajes previos")
 
-    # Buscar el último mensaje del asistente
-    for msg in reversed(messages):
-        if isinstance(msg, AIMessage):
-            resultado = msg.content
-            break
+    # Contar cuántos mensajes del usuario hay para determinar si hubo ajustes
+    human_messages = [msg for msg in messages if isinstance(msg, HumanMessage)]
+    
+    # Si no hay mensajes del usuario, significa que no hubo ajustes y debemos usar el resultado original
+    if len(human_messages) == 0:
+        # Recuperar el resultado original guardado durante el procesamiento de la foto
+        if hasattr(app, "resultados_originales") and str(usuario.id) in app.resultados_originales:
+            resultado = app.resultados_originales[str(usuario.id)]
+        else:
+            # Si por alguna razón no tenemos el resultado original, usamos el primer mensaje AI
+            ai_messages = [msg for msg in messages if isinstance(msg, AIMessage)]
+            if ai_messages:
+                resultado = ai_messages[0].content
+            else:
+                raise HTTPException(status_code=404, detail="No se encontró resultado para guardar")
     else:
-        raise HTTPException(status_code=404, detail="No se encontró respuesta del asistente")
+        # Si hay mensajes del usuario, significa que hubo ajustes y tomamos el último mensaje AI
+        ai_messages = [msg for msg in messages if isinstance(msg, AIMessage)]
+        if ai_messages:
+            resultado = ai_messages[-1].content
+        else:
+            raise HTTPException(status_code=404, detail="No se encontró respuesta del asistente")
 
     # Guardar en base de datos
     comida = Comida(
         usuario_id=usuario.id,
         resultado=resultado,
-        filename="ajuste_final_chat"
+        filename="ajuste_final_chat" if len(human_messages) > 0 else "analisis_inicial"
     )
     session.add(comida)
     session.commit()
 
-    return {"mensaje": "Resultado final guardado correctamente"}
+    # Limpiar el resultado original después de guardarlo (opcional)
+    if hasattr(app, "resultados_originales") and str(usuario.id) in app.resultados_originales:
+        del app.resultados_originales[str(usuario.id)]
 
+    return {"mensaje": "Resultado final guardado correctamente"}
 
 

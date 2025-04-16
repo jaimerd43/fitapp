@@ -8,6 +8,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const conversacion = document.getElementById("conversacion");
   const ajusteInput = document.getElementById("ajuste-input");
 
+  // Variable global para rastrear si se hicieron ajustes
+  window.seHicieronAjustes = false;
+
   const token = localStorage.getItem("token");
   if (token) {
     authBox.classList.add("hidden");
@@ -70,6 +73,9 @@ document.addEventListener("DOMContentLoaded", () => {
     cargando.classList.remove("hidden");
     resultado.textContent = "";
 
+    // Reset ajustes tracking when sending a new photo
+    window.seHicieronAjustes = false;
+
     const res = await fetch("/procesar-foto", {
       method: "POST",
       headers: {
@@ -93,6 +99,9 @@ document.addEventListener("DOMContentLoaded", () => {
   window.enviarAjuste = async function () {
     const mensaje = ajusteInput.value.trim();
     if (!mensaje) return;
+
+    // Marcar que se hicieron ajustes
+    window.seHicieronAjustes = true;
 
     // Mostrar mensaje del usuario con estilo
     const userBubble = document.createElement("div");
@@ -124,7 +133,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 });
 
-
 window.guardarResultadoFinal = async function () {
   const res = await fetch("/guardar-ajuste-final", {
     method: "POST",
@@ -134,10 +142,19 @@ window.guardarResultadoFinal = async function () {
   });
 
   const data = await res.json();
-  alert(data.mensaje || "Guardado correctamente ✅");
+  
+  // Mostrar mensaje según si hubo ajustes o no
+  if (window.seHicieronAjustes) {
+    alert("Análisis ajustado guardado correctamente ✅");
+  } else {
+    alert("Análisis inicial guardado correctamente ✅");
+  }
 
-  conversacion.innerHTML = "";
-  ajusteInput.value = "";
-  chatBox.classList.add("hidden");
+  // Limpiar la conversación y ocultar el chat box
+  document.getElementById("conversacion").innerHTML = "";
+  document.getElementById("ajuste-input").value = "";
+  document.getElementById("chat-box").classList.add("hidden");
+  
+  // Reiniciar la bandera de ajustes
+  window.seHicieronAjustes = false;
 };
-
