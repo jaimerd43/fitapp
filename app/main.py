@@ -102,12 +102,6 @@ async def procesar_foto(
     session: Session = Depends(get_session)
 ):
     # Guardar imagen temporal
-async def procesar_foto(
-    foto: UploadFile = File(...),
-    usuario: Usuario = Depends(get_current_user),
-    session: Session = Depends(get_session)
-):
-    # Guardar imagen temporal
     temp_path = f"temp_{foto.filename}"
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(foto.file, buffer)
