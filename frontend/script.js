@@ -81,8 +81,12 @@ document.addEventListener("DOMContentLoaded", () => {
       headers: {
         Authorization: "Bearer " + localStorage.getItem("token")
       },
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("token")
+      },
       body: formData
     });
+
 
     const data = await res.json();
     cargando.classList.add("hidden");

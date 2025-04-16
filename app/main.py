@@ -51,6 +51,28 @@ def login(data: AuthData, session: Session = Depends(get_session)):
     return {"access_token": token, "token_type": "bearer"}
 
 
+class AuthData(BaseModel):
+    email: str
+    password: str
+
+@app.post("/registro")
+def registrar(data: AuthData, session: Session = Depends(get_session)):
+    if session.exec(select(Usuario).where(Usuario.email == data.email)).first():
+        raise HTTPException(status_code=400, detail="Usuario ya existe")
+    user = Usuario(email=data.email, hashed_password=hash_password(data.password))
+    session.add(user)
+    session.commit()
+    return {"mensaje": "Usuario creado"}
+
+@app.post("/login")
+def login(data: AuthData, session: Session = Depends(get_session)):
+    user = session.exec(select(Usuario).where(Usuario.email == data.email)).first()
+    if not user or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    token = create_access_token({"sub": user.email})
+    return {"access_token": token, "token_type": "bearer"}
+
+
 # Permite acceso desde cualquier origen en desarrollo
 app.add_middleware(
     CORSMiddleware,
@@ -66,12 +88,20 @@ def encode_image(image_path):
 
 # Servir archivos estáticos (frontend)
 app.mount("/static", StaticFiles(directory="./frontend"), name="static")
+app.mount("/static", StaticFiles(directory="./frontend"), name="static")
 
 @app.get("/")
 def serve_index():
     return FileResponse("./frontend/index.html")
+    return FileResponse("./frontend/index.html")
 
 @app.post("/procesar-foto")
+async def procesar_foto(
+    foto: UploadFile = File(...),
+    usuario: Usuario = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    # Guardar imagen temporal
 async def procesar_foto(
     foto: UploadFile = File(...),
     usuario: Usuario = Depends(get_current_user),
